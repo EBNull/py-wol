@@ -7,6 +7,8 @@ from irc_util import PrefixMessageFormat
 from py_util import *
 import channel
 import user
+from select import select
+from threading import Thread
 
 import wol_logging
 wol_logging.SetupLogging(1)
@@ -465,6 +467,51 @@ class WOLServer:
             self.channels.CreateChannel(name)
         self.games = channel.Game_Manager()
         self.adminusername = "PyWOL_0.1"
+
+
+class Server_Listener_Thread(Thread):
+    """Defines the thread that listens for incoming connections
+    """
+    def __repr__(self):
+        return "Server incoming connection thread"
+    def __init__(self, wolserver_to_connect_to):
+        Thread.__init__(self, group=None, target=None, name="Server incoming connection thread")
+        self.setDaemon(True)
+        wol_logging.log(wol_logging.DEBUG, "accept", "Server incoming connection thread Created")
+        self.__serv = wolserver_to_connect_to
+    def run(self):
+        sock_info = {
+            4005: "Main_Sock",
+            4003: "Chat_Sock",
+            4001: "Game_Sock",
+            4002: "Ladder_Sock"
+        }
+        while (True):
+            readable_socks = select(socks.values(), [],[])[0] #select blocks
+            for s in readable_socks:
+                p = s.getsockname()[1] #p = port
+                (clientsocket, address) = (None, None)
+                try:
+                    (clientsocket, address) = socks[p].accept()
+                except socket.error, (n, e):
+                    if n==10035: #no data
+                        pass
+                    else:
+                        raise socket.error, (n, e)
+                if clientsocket != None:
+                    n = sock_info[p]
+                    if p == 4005:
+                        ct = WOL_Main_Connection(n, clientsocket, address[0], address[1])
+                        ct.set_server(self.__serv)
+                    elif p == 4003:
+                        ct = WOL_Chat_Connection(n, clientsocket, address[0], address[1])
+                        ct.set_server(self.__serv)
+                    else:
+                        ct = irc_util.Base_IRC_Connection("???? (" + str(p) + ") Sock", clientsocket, address[0], address[1])
+                    ct.start()
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
+#-----------------------------------------------------------------
 if (__name__ == "__main__"):
     wol_logging.log(wol_logging.INFO, "", "PyWOL started")
     
@@ -490,57 +537,34 @@ if (__name__ == "__main__"):
     #tidy = Tidy_Thread()
     #tidy.start()
 
-    while 1:
-        #Main Loop
-        for (p, n) in sock_info:
-            (clientsocket, address) = (None, None)
-            try:
-                (clientsocket, address) = socks[p].accept()
-            except socket.error, (n, e):
-                if n==10035: #no data
-                    pass
-                else:
-                    raise socket.error, (n, e)
-            if clientsocket != None:
-                if p == 4005:
-                    ct = WOL_Main_Connection(n, clientsocket, address[0], address[1])
-                    ct.set_server(serv)
-                elif p == 4003:
-                    ct = WOL_Chat_Connection(n, clientsocket, address[0], address[1])
-                    ct.set_server(serv)
-                else:
-                    ct = irc_util.Base_IRC_Connection("???? (" + str(p) + ") Sock", clientsocket, address[0], address[1])
-                ct.start()
-            
-        if (msvcrt.kbhit()):
-            k = msvcrt.getch()
-            if k == '0':
-                debugs = db['all']
-                print "Debug Level: All"
-            if k == '1':
-                debugs = db['common']
-                print "Debug Level: common"
-            if k == '9':
-                debugs = db['raw']
-                print "Debug Level: raw"
-            if k == 'g':
-                print "Running Games:"
-                for g in Games.g.values():
-                    print "\t%s"%(repr(g))
-            if k == 'u':
-                print "Connected Users:"
-                for u in Connected_Users.u.values():
-                    print "\t%s"%(repr(u))
-            if k == 's':
-                print "System Halted. Press enter to Finish."
-                break
-
-    for (p,n) in sock_info:
-        socks[p].close()
+    accept_thread = Server_Listener_Thread(serv)
+    accept_thread.start()
 
     halt = False
-    while halt == False:
-        if (msvcrt.kbhit()):
-            k = msvcrt.getch()
-            if (k == chr(13)):
-                halt = True    
+    while (halt == False):
+        k = msvcrt.getch() #this line blocks, waiting for input
+        if k == '0':
+            debugs = db['all']
+            print "Debug Level: All"
+        if k == '1':
+            debugs = db['common']
+            print "Debug Level: common"
+        if k == '9':
+            debugs = db['raw']
+            print "Debug Level: raw"
+        if k == 'g':
+            print "Running Games:"
+            for g in serv.games.g:
+                print "\t%s"%(repr(g))
+        if k == 'u':
+            print "Connected Users:"
+            for u in serv.users.u:
+                print "\t%s"%(repr(u))
+        if k == 's':
+            print "System Halted. Press enter to Finish."
+            while halt == False:
+                k = msvcrt.getch()
+                if (k == chr(13)):
+                    halt = True  
+    for (s) in socks.values():
+        s.close()
