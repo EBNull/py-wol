@@ -489,9 +489,9 @@ class Server_Listener_Thread(Thread):
         while (True):
             readable_socks = select(socks.values(), [],[])[0] #select blocks
             for s in readable_socks:
-                p = s.getsockname()[1] #p = port
                 (clientsocket, address) = (None, None)
                 try:
+                    p = s.getsockname()[1] #p = port
                     (clientsocket, address) = socks[p].accept()
                 except socket.error, (n, e):
                     if n==10035: #no data

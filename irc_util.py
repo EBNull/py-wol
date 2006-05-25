@@ -1,6 +1,7 @@
 from threading import Thread
 import socket
 import wol_logging
+import select
 
 def PrefixMessageFormat(prefix, command, params):
     """Formats an outgoing message with the specified prefix, command, and paramaters.
@@ -138,6 +139,7 @@ class Base_IRC_Connection(Thread):
         self.__halt=True
     def run(self):
         while (self.__halt == False):
+            select.select([self._sock],[],[self._sock])
             r = ""
             try:
                 r = self._sock.recv(1024)
@@ -152,8 +154,9 @@ class Base_IRC_Connection(Thread):
                     self.OnError(n, e)
                     break;
             self.__buf.push(r)
+
             l = self.__buf.pop()
-            if l != "": #we have a full line we can process now
+            while l != "": #we have a full line we can process now
                 try:
                     self.OnRecvStr(l)
                 except:
@@ -183,6 +186,7 @@ class Base_IRC_Connection(Thread):
                     self._sock.close()
                     self.OnDisconnect()
                     self.halt()
+                l = self.__buf.pop()
     def halt(self):
         self.__halt = True
     def OnConnect(self):
