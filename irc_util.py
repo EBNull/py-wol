@@ -137,6 +137,8 @@ class Base_IRC_Connection(Thread):
         self.halt()
     def stop(self):
         self.__halt=True
+    def dumpbuf(self):
+        print "incoming buffer: " + self.__buf._IRC_Buffer__data
     def run(self):
         while (self.__halt == False):
             select.select([self._sock],[],[self._sock])

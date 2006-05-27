@@ -146,7 +146,6 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         pass
     def OnGetBuddy(self, data):
         self.senddata(": 333 u\r\n")
-        self.OnListChannels(data) #hackity hack. sometimes RA2/YR don't send "LIST"
         pass
     def OnQuit(self, data):
         self.user.LeaveChannel()
@@ -342,22 +341,24 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         else:
             self.TellClient(repr(params))
     def OnCreateNewGame(self, params):
-        #JOINGAME #CBWhiz's_game 1 7 41 3 1 0 1 creating
+	#>       JOINGAME #user's_game unk1 numberOfPlayers gameType unk4 unk5 gameIsTournament unk7 password
+	#< user!WWOL@hostname JOINGAME unk1 numberOfPlayers gameType unk4 clanID longIP gameIsTournament :#game_channel_name
         
-           #:CBWhiz!u@h JOINGAME 1 7 41 1 0 1165753248 0 :#CBWhiz's_game
+        #JOINGAME #CBWhiz's_game 1 7 41 3 1 0 1 creating
+        #:CBWhiz!u@h JOINGAME 1 7 41 1 0 1165753248 0 :#CBWhiz's_game
         #: 332 u #CBWhiz's_game :
         #: 353 u = #CBWhiz's_game :@CBWhiz,0,1165753248
         #: 366 u #CBWhiz's_game :
         gdata = { }
         try:
             gdata["name"] = params[0]
-            gdata["2"] = params[1]
+            gdata["unk1"] = params[1]
             gdata["playercount"] = params[2]
             gdata["clientgame"] = params[3] #41 = Yuri's Revenge
-            gdata["5"] = params[4]
-            gdata["6"] = params[5]
+            gdata["unk4"] = params[4]
+            gdata["unk5"] = params[5]
             gdata["tournament"] = params[6]
-            gdata["8"] = params[7]
+            gdata["unk7"] = params[7]
         except LookupError:
             pass
         g = self.server.games.FindGame(gdata["name"])
@@ -367,16 +368,16 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             return
         g = self.server.games.CreateGame(gdata["name"])
         g.gdata = gdata
-        self.senddata(":" + self.user.GetName() + "!u@h JOINGAME %s %s %s %s %s %u %s :%s\r\n"%(gdata["2"],
+        g.AddUser(self.user)
+        self.senddata(":" + self.user.GetName() + "!u@h JOINGAME %s %s %s %s %s %u %s :%s  \r\n"%(gdata["unk1"],
                                                                                             gdata["playercount"],
                                                                                             gdata["clientgame"],
-                                                                                            gdata["6"],
-                                                                                            "0",
+                                                                                            gdata["unk4"],
+                                                                                            "0", #clanID
                                                                                             ip.ip_to_long_external(self.rhost),
                                                                                             gdata["tournament"],
                                                                                             gdata["name"]))
-        g.AddUser(self.user)
-        self.SendGameNamesList()
+        #self.SendGameNamesList()
     def SendGameNamesList(self):
         g = self.user.GetGame()
         if g != None:
@@ -409,7 +410,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             g = self.user.GetGame()
             if g != None:
                 for u in g.GetUsers():
-                    #if u != self.user:
+                    if u != self.user:
                         u.connection.senddata(":"+self.user.GetName()+"!u@h GAMEOPT "+un+" :"+d+"\r\n")
         else:
             g = self.user.GetGame()
@@ -560,11 +561,14 @@ if (__name__ == "__main__"):
             print "Connected Users:"
             for u in serv.users.u:
                 print "\t%s"%(repr(u))
+        if k == 'b':
+            for u in serv.users.u:
+                u.connection.dumpbuf();
         if k == 's':
             print "System Halted. Press enter to Finish."
             while halt == False:
                 k = msvcrt.getch()
                 if (k == chr(13)):
                     halt = True  
-    for (s) in socks.values():
-        s.close()
+#    for (s) in socks.values():
+#        s.close()
