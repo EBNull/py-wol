@@ -336,7 +336,10 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         c = len(params)
         if c == 2:
             self.OnEnterExistingGame(params)
-        if (c == 8) or (c==9):
+        if (c > 8): #or (c==9):
+            #8 = game with no password
+            #9 = game with a password
+            #>9 = game with a password with spaces
             self.OnCreateNewGame(params)
         else:
             self.TellClient(repr(params))
@@ -381,7 +384,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
     def SendGameNamesList(self):
         g = self.user.GetGame()
         if g != None:
-            self.senddata(": 332 u " + g.GetName() + " :\r\n")
+            self.senddata(": 332 u " + g.GetName() + " :"+g.GetTopic()+"\r\n")
             omghost = 0
             for u in g.GetUsers():
                 n = u.GetName()
@@ -394,6 +397,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             self.senddata(": 366 u " + g.GetName() + " :\r\n")
     def OnTopic(self, data):
         #TOPIC #CBWhiz's_game :g17D25,2097731398,0,0,0,
+        #:irc.westwood.com 332 CBWhiz CBWhiz's game :g15N39,1878366581,0,0,0,MP13S4.MAP
         c = data[1][1]
         t = data[1][2]
         g = self.server.games.FindGame(c)
@@ -401,6 +405,12 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             wol_logging.log(wol_logging.ERROR, "games", "Requested set %s to topic %s but that game doesnt exist"%(c, t))
         else:
             g.SetTopic(t)
+            users = g.GetUsers()
+            self.SendGameNamesList()
+            #for u in users:               
+                #u.connection.senddata(": 332 %s %s :%s\r\n"%(self.user.GetName(), c, t))
+
+
     def OnGameOpt(self, data):
         #GAMEOPT CBWhiz :R1,2,-2,-2,200a8c0,1,552
         un = data[1][1]
@@ -458,7 +468,8 @@ class WOLServer:
             raise e
         wol_logging.log(wol_logging.INFO, "ip", "Detected External IP as %s"% self.ip)
         self.users = user.User_Manager()
-        chans = ("#Lob_33_0", #RA2
+        chans = ("#Lob_18_0", #TS
+                 "#Lob_33_0", #RA2
                  "#Lob_33_1", #RA2
                  "#Lob_41_0", #YR
                  #"#Lob_41_1"  #YR
