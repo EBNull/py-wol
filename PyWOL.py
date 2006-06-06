@@ -93,6 +93,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             'JOINGAME': self.OnJoinGame,
             'GAMEOPT': self.OnGameOpt,
             'TOPIC': self.OnTopic,
+            'STARTG': self.OnStartGame,
             
             'unknown': self.OnRecvUnknown
         }
@@ -473,7 +474,25 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
                                                                                             gdata["name"]))
         g.AddUser(self.user)
         self.SendGameNamesList()
-    
+    def OnStartGame(self, params):
+        #gamehost!WWOL@hostname STARTG u :user1 xxx.xxx.xxx.xxx user2 xxx.xxx.xxx.xxx :gameNumber cTime
+        wol_logging.log(wol_logging.DEBUG, "games", "OnStartGame: %s"%(repr(params)))
+        c = data[1][1] #total guess
+        g = self.server.games.FindGame(c)
+        if g == None:
+            wol_logging.log(wol_logging.ERROR, "games", "Requested startgame %s but channel not founf"%(c))
+        else:
+            users = g.GetUsers()
+            userlist = []
+            for u in users:
+                #build IP list
+                theip = u.connection.rhost
+                userlist.append("%s %s"%(u.GetName(), str(theip)))
+            userlist = ' '.join(userlist)
+            for u in users:
+                u.connection.senddata("%s!u@h STARTG u :%s :1337 0\r\n"%(g.GetHost(), userlist))
+
+        
 def CreateServerSocket(port):
     """Creates a listening socket on port, and sets it to non-blocking mode"""
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
