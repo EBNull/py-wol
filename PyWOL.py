@@ -336,7 +336,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         c = len(params)
         if c == 2:
             self.OnEnterExistingGame(params)
-        if (c > 8): #or (c==9):
+        if (c >= 8): #or (c==9):
             #8 = game with no password
             #9 = game with a password
             #>9 = game with a password with spaces
@@ -352,6 +352,31 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         #: 332 u #CBWhiz's_game :
         #: 353 u = #CBWhiz's_game :@CBWhiz,0,1165753248
         #: 366 u #CBWhiz's_game :
+
+        #Tiberian Sun
+        #
+        #   JOINGAME #CBWhiz's_game 1 3 18 3 1 0 0 lol tib      < normal, passworded
+        #   JOINGAME #CBWhiz's_game 1 2 18 3 1 1 0              < tourny, no password
+        #           0 - Game Name       (#CBWhiz's Game)
+        #           1 - Unknown1        (1) [always 1?]
+        #           2 - Player Count    (3) (2)
+        #           3 - Client Game     (18) [18 - TS, 33 - RA2, 41 - YR]
+        #           4 - Unknown4        (3) [always 3?]
+        #           5 - Unknown5        (1)
+        #           6 - IsTournament    (0) (1)
+        #           7 - Unknown7        (0)
+        #           8>- Password        (lol tib) [interestingly, no : is used to mark password start]
+        #
+        #   :CBWhiz!u@h JOINGAME 1 3 18 3 0 12345 0 :#CBWhiz's_game
+        #                 Count   Desc      Cur         Index_Of_Sent_Str
+        #                   1 - Unknown1    (1)                 1
+        #                   2 - PlayerCount (3)                 2
+        #                   3 - ClientGame  (18)                3
+        #                   4 - Unknown4    (3)                 4
+        #                   5 - ClanID?     (0)                 - [Can always pass zero]
+        #                   6 - IPAddress   (12345)             -
+        #                   7 - Tournament  (0)                 6
+        #                   8 - GameName    (#CBWhiz's_game)    -
         gdata = { }
         try:
             gdata["name"] = params[0]
@@ -362,6 +387,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             gdata["unk5"] = params[5]
             gdata["tournament"] = params[6]
             gdata["unk7"] = params[7]
+            gdata["password"] = ' '.join(params[8:])
         except LookupError:
             pass
         g = self.server.games.FindGame(gdata["name"])
@@ -380,7 +406,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
                                                                                             ip.ip_to_long_external(self.rhost),
                                                                                             gdata["tournament"],
                                                                                             gdata["name"]))
-        #self.SendGameNamesList()
+        self.SendGameNamesList()
     def SendGameNamesList(self):
         g = self.user.GetGame()
         if g != None:
