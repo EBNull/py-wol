@@ -324,7 +324,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         self.senddata(": 321 u:\r\n")
         for g in self.server.games.GetGames():
             dip = ip.ip_to_long_external(g.GetHost().connection.rhost)
-            self.senddata(": 326 u %s %i 0 %s 0 %u 128::%s\r\n"%(g.GetName(),
+            self.senddata(": 326 u %s %i 0 %s 0 0 %u 128::%s\r\n"%(g.GetName(),
                                                                 len(g.GetUsers()),
                                                                 g.gdata["clientgame"],
                                                                 dip,
@@ -365,15 +365,16 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         #           4 - Unknown4        (3) [always 3?]
         #           5 - Unknown5        (1)
         #           6 - IsTournament    (0) (1)
-        #           7 - Unknown7        (0)
+        #           7 - ChanNumber      (0)         (ie, last number in channel name of #Lob_33_1)
         #           8>- Password        (lol tib) [interestingly, no : is used to mark password start]
+        #
         #
         #   :CBWhiz!u@h JOINGAME 1 3 18 3 0 12345 0 :#CBWhiz's_game
         #                 Count   Desc      Cur         Index_Of_Sent_Str
         #                   1 - Unknown1    (1)                 1
         #                   2 - PlayerCount (3)                 2
         #                   3 - ClientGame  (18)                3
-        #                   4 - Unknown4    (3)                 4
+        #                   4 - Unknown4    (3)                 4 (7, channum?)
         #                   5 - ClanID?     (0)                 - [Can always pass zero]
         #                   6 - IPAddress   (12345)             -
         #                   7 - Tournament  (0)                 6
@@ -387,7 +388,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             gdata["unk4"] = params[4]
             gdata["unk5"] = params[5]
             gdata["tournament"] = params[6]
-            gdata["unk7"] = params[7]
+            gdata["channum"] = params[7]
             gdata["password"] = ' '.join(params[8:])
         except LookupError:
             pass
@@ -402,7 +403,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         self.senddata(":" + self.user.GetName() + "!u@h JOINGAME %s %s %s %s %s %u %s :%s  \r\n"%(gdata["unk1"],
                                                                                             gdata["playercount"],
                                                                                             gdata["clientgame"],
-                                                                                            gdata["unk4"],
+                                                                                            gdata["channum"],
                                                                                             "0", #clanID
                                                                                             ip.ip_to_long_external(self.rhost),
                                                                                             gdata["tournament"],
@@ -433,9 +434,10 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         else:
             g.SetTopic(t)
             users = g.GetUsers()
-            self.SendGameNamesList()
-            #for u in users:               
-                #u.connection.senddata(": 332 %s %s :%s\r\n"%(self.user.GetName(), c, t))
+            #self.SendGameNamesList()
+            for u in users:
+                if u != self.user: #Confirmed, sender/hoster does not get this back
+                    u.connection.senddata(": 332 %s %s :%s\r\n"%(self.user.GetName(), c, t))
 
 
     def OnGameOpt(self, data):
@@ -447,7 +449,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             g = self.user.GetGame()
             if g != None:
                 for u in g.GetUsers():
-                    if u != self.user:
+                    if u != self.user: #Confirmed, host does not get channel GameOpts
                         u.connection.senddata(":"+self.user.GetName()+"!u@h GAMEOPT "+un+" :"+d+"\r\n")
         else:
             g = self.user.GetGame()
@@ -516,8 +518,13 @@ class WOLServer:
         chans = ("#Lob_18_0", #TS
                  "#Lob_33_0", #RA2
                  "#Lob_33_1", #RA2
+                 "#Lob_33_2", #RA2
+                 "#Lob_33_3", #RA2
+                 "#Lob_40_0", #YR?
                  "#Lob_41_0", #YR
-                 #"#Lob_41_1"  #YR
+                 "#Lob_41_1", #YR
+                 "#Lob_41_2", #YR
+                 "#Lob_41_3"  #YR
                  )
         self.channels = channel.Channel_Manager()
         for name in chans:

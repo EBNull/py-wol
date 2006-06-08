@@ -1,8 +1,9 @@
 import wol_logging
 
+
 class Channel:
     def __repr__(self):
-        return "Channel %s: %i users (%s)"%(self.name, len(self.users), ', '.join([u.GetName() for u in self.users]))
+        return "Channel [PyID: %i] %s: %i users (%s)"%(id(self), self.name, len(self.users), ', '.join([u.GetName() for u in self.users]))
     def __init__(self, name, chan_mgr):
         self.name = name
         self.users = []
@@ -59,7 +60,7 @@ class Channel_Manager:
 maxgid = 1
 class Game(Channel):
     def __repr__(self):
-        return "Game %s: %i users (%s)"%(self.name, len(self.users), ', '.join([u.GetName() for u in self.users]))
+        return "Game [PyID: %i] %s: %i users (%s)"%(id(self), self.name, len(self.users), ', '.join([u.GetName() for u in self.users]))
     def __del__(self):
         wol_logging.log(wol_logging.DEBUG, "game", "Game Instance Destroyed (%s)"%(repr(self)))
     def __init__(self, name, game_mgr):
@@ -79,6 +80,7 @@ class Game(Channel):
         gdata["tournament"] = "0"
         gdata["8"] = "0"
         self.gdata = gdata
+        wol_logging.log(wol_logging.DEBUG, "game", "Game Instance Created (%s)"%(repr(self)))
     def AddUser(self, user):
         Channel.AddUser(self, user)
         user.channel = None
