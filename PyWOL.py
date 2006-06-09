@@ -182,21 +182,25 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             for u in c.GetUsers():
                 if u != self.user:
                     #this output is a total guess
-                    self.senddata(":%s!u@h PRIVMSG %s :%s\r\n"%(self.user.GetName(), c.GetName(), data[1][2]))
+                    u.connection.senddata(":%s!u@h PRIVMSG %s :%s\r\n"%(self.user.GetName(), c.GetName(), data[1][2]))
         else: #message to user
-            u = self.server.users.FindUser(data[1][1])
-            if c == None:
-                #should probably return some sort of error, or something
-                pass
-            else:
-                u.connection.senddata(":%s!u@h PRIVMSG %s :%s\r\n"%(self.user.GetName(), data[1][1], data[1][2]))
+            usernames = data[1][1]
+            text = data[1][2]
+            usernames = usernames.split(',')
+            for username in usernames:
+                u = self.server.users.FindUser(username)
+                if u == None:
+                    self.TellClient("No such user %s"%(username))
+                    #should probably return some sort of error, or something
+                    pass
+                else:
+                    u.connection.senddata(":%s!u@h PRIVMSG %s :%s\r\n"%(self.user.GetName(), username, text))
     def CheckSpecialCommands(self, data):
         cmdstr = data[1][2]
         try:
             if cmdstr[0] == "/":
                 params = cmdstr.split(" ")
                 params[0] = params[0][1:].upper()
-                self.TellClient(repr(params))
                 if params[0] == "KILL":
                     un = params[1]
                     u = self.server.users.FindUser(un)
@@ -204,11 +208,11 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
                         u.connection.senddata(": 398 u 0:#byebye,0\r\n")
                     else:
                         self.TellClient("%s not found."%(un))
-                if params[0] == "W":
+                elif params[0] == "W" or params[0] == "M" or params[0] == "PAGE":
                     u = params[1]
-                    t = params[2:]
+                    t = ' '.join(params[2:])
                     self.OnPage(("", ("PAGE", u, t)))
-                if params[0] == "WHERE":
+                elif params[0] == "WHERE":
                     un = params[1]
                     u = self.server.users.FindUser(un)
                     if u == None:
@@ -219,6 +223,9 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
                             loc = u.GetGame()
                         loc = loc.GetName()
                         self.TellClient("%s is in %s"%(un, loc))
+                else:
+                        self.TellClient("Command not understood")
+                        self.TellClient(repr(params))
                 return True
         except LookupError, e:
             self.TellClient(repr(e))
@@ -243,7 +250,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             pass
         else:
             u.connection.senddata(":%s!u@h PAGE %s :%s\r\n"%(self.user.GetName(), data[1][1], data[1][2]))
-            self.senddata(": 389 u 0") #i assume this is "page has succeded"
+            self.senddata(": 389 u 0\r\n") #i assume this is "page has succeded"
     def OnFindUserEx(self, data):
         #in:
         #FINDUSEREX cbwhiz 0
@@ -408,7 +415,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
                                                                                             ip.ip_to_long_external(self.rhost),
                                                                                             gdata["tournament"],
                                                                                             gdata["name"]))
-        self.SendGameNamesList()
+        g.SendNameListToAll()
     def SendGameNamesList(self):
         g = self.user.GetGame()
         if g != None:
@@ -434,7 +441,6 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         else:
             g.SetTopic(t)
             users = g.GetUsers()
-            #self.SendGameNamesList()
             for u in users:
                 if u != self.user: #Confirmed, sender/hoster does not get this back
                     u.connection.senddata(": 332 %s %s :%s\r\n"%(self.user.GetName(), c, t))
@@ -459,30 +465,32 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
             #:CBWhiz!u@h GAMEOPT CBWhiz :R1,2,-2,-2,200a8c0,1,552
     def OnEnterExistingGame(self, params):
         gdata = {}
-        gdata["name"] = params[1][1]
+        gdata["name"] = params[0]
         g = self.server.games.FindGame(gdata["name"])
         if g == None:
             self.TellClient("That game does not exist")
             self.senddata(": 403 :")
             return
         gdata = g.gdata
-        self.senddata(":" + self.user.GetName() + "!u@h JOINGAME %s %s %s %s %s %u %s :%s\r\n"%(gdata["2"],
+        self.senddata(":" + self.user.GetName() + "!u@h JOINGAME %s %s %s %s %s %u %s :%s\r\n"%(gdata["unk1"],
                                                                                             gdata["playercount"],
                                                                                             gdata["clientgame"],
-                                                                                            gdata["6"],
+                                                                                            gdata["channum"],
                                                                                             "0",
-                                                                                            ip.ip_to_long_external(self.rhost),
+                                                                                            ip.ip_to_long_external(g.GetHost().connection.rhost),
                                                                                             gdata["tournament"],
                                                                                             gdata["name"]))
         g.AddUser(self.user)
-        self.SendGameNamesList()
-    def OnStartGame(self, params):
+        g.SendNameListToAll()
+    def OnStartGame(self, data):
+        self.TellClient(repr(data))
         #gamehost!WWOL@hostname STARTG u :user1 xxx.xxx.xxx.xxx user2 xxx.xxx.xxx.xxx :gameNumber cTime
-        wol_logging.log(wol_logging.DEBUG, "games", "OnStartGame: %s"%(repr(params)))
+        wol_logging.log(wol_logging.DEBUG, "games", "OnStartGame: %s"%(repr(data)))
         c = data[1][1] #total guess
+        #interestingly data[1][2] is a comma delimited username list
         g = self.server.games.FindGame(c)
         if g == None:
-            wol_logging.log(wol_logging.ERROR, "games", "Requested startgame %s but channel not founf"%(c))
+            wol_logging.log(wol_logging.ERROR, "games", "Requested startgame %s but channel not found"%(c))
         else:
             users = g.GetUsers()
             userlist = []
@@ -492,7 +500,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
                 userlist.append("%s %s"%(u.GetName(), str(theip)))
             userlist = ' '.join(userlist)
             for u in users:
-                u.connection.senddata("%s!u@h STARTG u :%s :1337 0\r\n"%(g.GetHost(), userlist))
+                u.connection.senddata("%s!u@h STARTG u :%s :1337 0\r\n"%(g.GetHost().GetName(), userlist))
 
         
 def CreateServerSocket(port):
@@ -543,6 +551,9 @@ class Server_Listener_Thread(Thread):
         self.setDaemon(True)
         wol_logging.log(wol_logging.DEBUG, "accept", "Server incoming connection thread Created")
         self.__serv = wolserver_to_connect_to
+        self.__halt = False
+    def halt(self):
+        self.__halt = True
     def run(self):
         sock_info = {
             4005: "Main_Sock",
@@ -550,8 +561,10 @@ class Server_Listener_Thread(Thread):
             4001: "Game_Sock",
             4002: "Ladder_Sock"
         }
-        while (True):
+        while (self.__halt == False):
             readable_socks = select(socks.values(), [],[])[0] #select blocks
+            if (self.__halt == True):
+                break
             for s in readable_socks:
                 (clientsocket, address) = (None, None)
                 try:
@@ -629,6 +642,9 @@ if (__name__ == "__main__"):
                 u.connection.dumpbuf();
         if k == 's':
             print "System Halted. Press enter to Finish."
+            for u in serv.users.u:
+                u.connection.Disconnect();
+                accept_thread.halt();
             while halt == False:
                 k = msvcrt.getch()
                 if (k == chr(13)):

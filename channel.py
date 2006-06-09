@@ -101,6 +101,9 @@ class Game(Channel):
         self.topic = topic
     def GetTopic(self):
         return self.topic
+    def SendNameListToAll(self):
+        for u in self.users:
+            u.connection.SendGameNamesList()
 class Game_Manager:
     def __init__(self):
         self.g = [ ]

@@ -93,16 +93,20 @@ class IRC_Buffer:
         else:
             return ""    
 
+maxconn = 1;
 class Base_IRC_Connection(Thread):
     """Defines a basic IRC connection handler.
     
     Override get_function_matrix() or OnRecvStr(ircline) to expand functionality.
     """
-    def debug(self, level, dtype, str):
-        wol_logging.log_caller(level, dtype, str)
+    def debug(self, level, dtype, strn):
+        wol_logging.log_caller(level, dtype, "[" + str(self.conid) + "] " + strn)
     def __repr__(self):
         return "%s: remote thread for %s"%(self.__class__, self.rhost)
     def __init__(self, sockname, sock, remotehost, remoteport):
+        global maxconn;
+        self.conid = maxconn
+        maxconn = maxconn + 1
         Thread.__init__(self, group=None, target=None, name="Remote %s thread for %s:%i"%(self.__class__, remotehost, remoteport))
         self.setDaemon(True)
         self.__halt=False
@@ -123,16 +127,23 @@ class Base_IRC_Connection(Thread):
             self.debug(wol_logging.DEBUG, "raw.out", str.strip())
             self._sock.setblocking(0)
         except Exception, e:
-            import StringIO
-            import traceback
-            f = StringIO.StringIO()
-            traceback.print_exc(file=f)
-            f = f.getvalue()
-            wol_logging.log(wol_logging.ERROR, "out", f)
-            raise e
-            pass
+            if (e[0] == 10054):
+                #Connection reset by peer
+                self.debug(wol_logging.DEBUG, "connection", "Connection reset by peer")
+                self.Disconnect()
+            else:
+                import StringIO
+                import traceback
+                f = StringIO.StringIO()
+                traceback.print_exc(file=f)
+                f = f.getvalue()
+                wol_logging.log(wol_logging.ERROR, "out", f)
+                raise e
     def Disconnect(self):
-        self._sock.close()
+        try:
+            self._sock.close()
+        except Exception, e:
+            pass
         self.OnDisconnect()
         self.halt()
     def stop(self):
