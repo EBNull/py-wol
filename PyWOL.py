@@ -13,6 +13,18 @@ from threading import Thread
 import wol_logging
 wol_logging.SetupLogging(1)
 
+class WOL_Ladder_Connection(irc_util.Base_IRC_Connection):
+    def __init__(self, *args):
+        super(self.__class__,self).__init__(*args)
+        self.server = None
+    def set_server(self, serverinstance):
+        self.server = serverinstance
+    def get_function_matrix(self):
+        return {
+            #LISTSEARCH 8448 -1 0 0 0 :cbwhiz:
+            'unknown': self.OnRecvUnknown
+        }
+
 class WOL_Main_Connection(irc_util.Base_IRC_Connection):
     def __init__(self, *args):
         super(self.__class__,self).__init__(*args)
@@ -32,7 +44,7 @@ class WOL_Main_Connection(irc_util.Base_IRC_Connection):
     def OnLobCount(self, data):
         self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "610", ("Username", "1")))
     def OnWhereTo(self, data):
-        self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "605", ("Username", "%s 4003 '0,1,2,3,4,5,6,7,8,9,10:%s' -8 36.1083 -115.0582"%(self.server.ip, "PyWOL WOL Server 0.01"))))
+        self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "605", ("Username", "%s 4003 '0,1,2,3,4,5,6,7,8,9,10:%s' -8 36.1083 -115.0582"%(self.server.ip, "PyWOL WOL Server 0.02"))))
         self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "605", ("Username", "%s 4003 'Live chat server' -8 36.1083 -115.0582"%(self.server.ip))))
         self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "608", ("Username", "%s 4001 'Gameres server' -8 36.1083 -115.0582"%(self.server.ip))))
         self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "609", ("Username", "%s 4002 'Ladder server' -8 36.1083 -115.0582"%(self.server.ip))))
@@ -61,10 +73,13 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         self.server = None
         self.user = None
         self.didmotd = False
+        self.senddata(":irc.westwood.com 999 :You connect. Take this +1 mace.\r\n");
     def set_server(self, serverinstance):
         self.server = serverinstance
     def get_function_matrix(self):
         return {
+            #random mirc stuff
+            'USERHOST': self.OnUserHost,
             #login procedure
             'CVERS': self.OnIgnorableIRCLine,
             'PASS': self.OnPASS,
@@ -101,13 +116,18 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         pass
     def OnPASS(self, data):
         pass
+    def OnUserHost(self, data):
+        self.senddata("302 %s :%s=+%s@%s\r\n"%(self.user.GetName(), self.user.GetName(), self.user.username, self.user.hostname))
     def OnNick(self, data):
         self.user = self.server.users.CreateUser(data[1][1], self)
     def OnUser(self, data):
         #USER UserName HostName irc.westwood.com :RealName
-        self.user.username = data[1][1]
-        self.user.hostname = data[1][2]
-        self.user.realname = data[1][4]
+        try:
+            self.user.username = data[1][1]
+            self.user.hostname = data[1][2]
+            self.user.realname = data[1][4]
+        except e:
+            self.senddata(": 999 :wrong format, use USER UserName HostName irc.westwood.com :RealName")
     def OnVerChk(self, data):
         self.senddata(": 379 u :none none none 1 32512 NONREQ\r\n")
         #: 379 u :none none none 1 32512 NONREQ
@@ -117,6 +137,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         if self.didmotd == True:
             return
         self.didmotd = True
+        self.senddata(":irc.westwood.com 001 %s :%s\r\n"%(self.user.GetName(), self.user.GetName()));
         self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "375", (self.user.name, "- Welcome to " + self.server.name)))
         self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "372", (self.user.name, "- MOTD: " + self.server.motd)))
         self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "376", (self.user.name, "- End of MOTD")))
@@ -159,10 +180,13 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         self._sock.close()
         pass
     def OnList(self, data):
-        if data[1][1] == "0":
-            self.OnListChannels(data)
-        else:
-            self.OnListGames(data)
+            if len(data[1]) < 2:
+                self.OnListChannels(data)
+            else:
+                if data[1][1] == "0":
+                    self.OnListChannels(data)
+                else:
+                    self.OnListGames(data)
     def OnPrivMsg(self, data):
         #To channel:
         #PRIVMSG #Lob_41_1 :this is text 
@@ -469,7 +493,7 @@ class WOL_Chat_Connection(irc_util.Base_IRC_Connection):
         g = self.server.games.FindGame(gdata["name"])
         if g == None:
             self.TellClient("That game does not exist")
-            self.senddata(": 403 :")
+            self.senddata(": 403 :\r\n")
             return
         gdata = g.gdata
         self.senddata(":" + self.user.GetName() + "!u@h JOINGAME %s %s %s %s %s %u %s :%s\r\n"%(gdata["unk1"],
@@ -513,7 +537,7 @@ def CreateServerSocket(port):
 
 class WOLServer:
     def __init__(self):
-        self.name = "PyWOL 0.1"
+        self.name = "PyWOL 0.2"
         self.motd = """This is a nondescriptive MOTD."""
         self.hostname = "irc.westwood.com"
         try:
@@ -538,7 +562,7 @@ class WOLServer:
         for name in chans:
             self.channels.CreateChannel(name)
         self.games = channel.Game_Manager()
-        self.adminusername = "PyWOL_0.1"
+        self.adminusername = "PyWOL_0.2"
 
 
 class Server_Listener_Thread(Thread):
@@ -582,6 +606,9 @@ class Server_Listener_Thread(Thread):
                         ct.set_server(self.__serv)
                     elif p == 4003:
                         ct = WOL_Chat_Connection(n, clientsocket, address[0], address[1])
+                        ct.set_server(self.__serv)
+                    elif p == 4002:
+                        ct = WOL_Ladder_Connection(n, clientsocket, address[0], address[1])
                         ct.set_server(self.__serv)
                     else:
                         ct = irc_util.Base_IRC_Connection("???? (" + str(p) + ") Sock", clientsocket, address[0], address[1])

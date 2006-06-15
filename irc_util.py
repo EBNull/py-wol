@@ -85,11 +85,11 @@ class IRC_Buffer:
     def push(self, str):
         self.__data += str
     def pop(self):
-        sdf = self.__data.find("\r\n")
+        sdf = self.__data.find("\n")
         if (sdf > -1):
             ret = self.__data[0:sdf]
-            self.__data = self.__data[sdf+2:]
-            return ret
+            self.__data = self.__data[sdf+1:]
+            return ret.strip()
         else:
             return ""    
 
@@ -213,7 +213,7 @@ class Base_IRC_Connection(Thread):
         pass
     def get_function_matrix(self):
         return {
-            'unknown':  OnRecvUnknown
+            'unknown':  self.OnRecvUnknown
         }
     def OnRecvStr(self, ircline):
         self.debug(wol_logging.DEBUG,"raw.in", ircline)
