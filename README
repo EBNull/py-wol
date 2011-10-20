@@ -10,3 +10,9 @@ http://triggsolutions.com/wiki/wol-gameserv-protocol
 
 (c) 2011 CBWhiz
 Source released under GPL3
+
+
+----
+Current branch descriptions:
+*master: old code
+*cleanroom: refactoring and reimplementation of protocol without any real testing (haven't installed RA2 again yet)
