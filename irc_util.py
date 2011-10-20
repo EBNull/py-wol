@@ -204,13 +204,14 @@ class Base_IRC_Connection(Thread):
         self.__halt = True
     def OnConnect(self):
         self.debug(wol_logging.INFO, "conn", "Accepted " + self.name + " connection from " + self.rhost + ":" + str(self.rport))
-        pass
+        
     def OnDisconnect(self):
-        self.debug(wol_logging.INFO,"conn", "Disconnected")
-        pass
+        self.debug(wol_logging.INFO, "conn", "Disconnected")
+        self._sock.close()
+        
     def OnError(self, num, str):
         self.debug(wol_logging.ERROR,"conn", "Error %i: %s" % (num, str))
-        pass
+        
     def get_function_matrix(self):
         return {
             'unknown':  self.OnRecvUnknown

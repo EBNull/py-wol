@@ -41,7 +41,7 @@ def linehere(framesback=1):
 def log(severity, cat, data, backs=2):
     #print "%s %s %s"%(severity, cat, data)
     if (cat == ""):
-        the_log = logging.getLogger('pywol'+cat)
+        the_log = logging.getLogger('pywol')
     else:
         the_log = logging.getLogger('pywol.'+cat)
     data = linehere(backs) + data
