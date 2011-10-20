@@ -1,1 +1,12 @@
-Hello world!
+Python Westwood Online v2 server Emulator
+
+Originally half working in 2006, now may (or may not) have a comeback.
+
+Protocol documentation:
+
+http://pvpgn.wikia.com/wiki/List_WOL_Protocols
+
+http://triggsolutions.com/wiki/wol-gameserv-protocol
+
+(c) 2011 CBWhiz
+Source released under GPL3
