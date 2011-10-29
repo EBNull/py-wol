@@ -33,9 +33,9 @@ class ListenThread(Thread):
     def run(self):
         sock_info = {
             4005: ("Director_Sock", DirectorConnection),
-            4003: ("GameServ_Sock", GameServConnection),
+            4002: ("GameServ_Sock", GameServConnection),
             4001: ("GameResolution_Sock", None),
-            4002: ("Ladder_Sock", LadderConnection)
+            4003: ("Ladder_Sock", LadderConnection)
         }
         socks = { }
         for port, (name, klass) in sock_info.iteritems():
