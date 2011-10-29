@@ -223,11 +223,10 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         #: 389 u 0
         u = self.server.users.FindUser(data[1][1])
         if u == None:
-            #should probably return some sort of error, or something
-            pass
+            self.senddata(": 389 u 1\r\n") #RA2 displays "User isn't logged in"
         else:
             u.connection.senddata(":%s!u@h PAGE %s :%s\r\n"%(self.user.GetName(), data[1][1], data[1][2]))
-            self.senddata(": 389 u 0\r\n") #i assume this is "page has succeded"
+            self.senddata(": 389 u 0\r\n")
     def OnFindUserEx(self, data):
         #in:
         #FINDUSEREX cbwhiz 0
