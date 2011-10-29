@@ -1,8 +1,11 @@
+import cPickle as pickle
+
 from .. import wol_logging
 
 
 maxuid = 1;
 class User:
+    SAVED_ATTRS = ('name', 'codepage', 'locale', 'opts', 'realname', 'username', 'buddies')
     def __repr__(self):
         return "User %i: %s (Room: %s, Game: %s)"%(self.uid, self.name, repr(self.channel), repr(self.game))
     def __init__(self, name, connection, user_mgr):
@@ -24,6 +27,15 @@ class User:
         self.connection = connection
     def __del__(self):
         wol_logging.log(wol_logging.DEBUG, "user", "User Instance Destroyed (%s)"%(repr(self)))
+    
+    def __getstate__(self):
+        return dict((((x, getattr(self, x)) for x in User.SAVED_ATTRS)))
+    
+    def __setstate__(self, state):
+        self.__init__('', None, None)
+        for x in User.SAVED_ATTRS:
+            setattr(self, x, state[x])
+            
     def GetName(self):
         return self.name
     def IsInGame(self):
@@ -51,8 +63,7 @@ class User:
     def Disconnect(self):
         self.LeaveChannel()
         self.LeaveGame()
-        self.user_mgr.RemoveUser(self)
-        self.user_mgr = None
+        self.user_mgr.save() #Write users on a user disconnecting
         if self.connection != None:
             self.connection.Disconnect()
 
@@ -61,6 +72,20 @@ class User:
 class User_Manager:
     def __init__(self):
         self.u = [ ]
+        self.load()
+
+    def load(self):
+        try:
+            ul = pickle.load(open("config_users.txt", "rb"))
+        except IOError:
+            return
+        for u in ul:
+            u.user_mgr = self
+        self.u = ul
+        
+    def save(self):
+        ul = pickle.dump(self.u, open("config_users.txt", "wb"))
+        
     def CreateUser(self, username, connection):
         """Returns a new User instance"""
         if self.FindUser(name=username) != None:
