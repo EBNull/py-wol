@@ -238,7 +238,7 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         wol_logging.log(wol_logging.DEBUG, "finduser", "Result: %s"%(repr(u)))
         if u == None:
             #should probably return some sort of error, or something
-            pass
+            self.senddata(": 398 u 1\r\n")
         else:
             loc = u.GetChannel()
             if loc == None:
