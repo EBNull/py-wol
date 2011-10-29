@@ -18,6 +18,7 @@ class User:
         self.hostname = ""
         self.realname = ""
         self.username = ""
+        self.buddies = set() #set of buddies (strings)
         self.channel = None    #Holds refrences to Channel instances
         self.game = None       #Holds references to Game instances
         self.connection = connection

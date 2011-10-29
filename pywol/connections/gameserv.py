@@ -16,7 +16,7 @@ class GameServConnection(irc_util.Base_IRC_Connection):
     def TellClient(self, lines):
         lines = lines.split("\n")
         for l in lines:
-            self.senddata(":%s!u@h PRIVMSG %s :%s\r\n"%(self.server.adminusername, self.user.GetName(), l))
+            self.senddata(":%s!u@h PRIVMSG %s : %s\r\n"%(self.server.adminusername, self.user.GetName(), l))
     def __init__(self, *args):
         super(self.__class__,self).__init__(*args)
         self.server = None
@@ -45,6 +45,8 @@ class GameServConnection(irc_util.Base_IRC_Connection):
             'GETLOCALE': self.OnGetLocale,
             'SQUADINFO': self.OnSquadInfo,
             'GETBUDDY': self.OnGetBuddy,
+            'ADDBUDDY': self.OnAddBuddy,
+            'DELBUDDY': self.OnDelBuddy,
             'FINDUSEREX': self.OnFindUserEx,
             #channels
             'LIST': self.OnList,
@@ -116,8 +118,11 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         self.senddata(": 439\r\n") #439 = No Squad with that ID
         pass
     def OnGetBuddy(self, data):
-        self.senddata(": 333 u\r\n")
-        pass
+        self.senddata(": 333 u %s\r\n"%('`'.join(self.user.buddies)))
+    def OnAddBuddy(self, data):
+        self.user.buddies.add(data[1][1])
+    def OnDelBuddy(self, data):
+        self.user.buddies.discard(data[1][1])
     def OnQuit(self, data):
         self.user.LeaveChannel()
         self.user.LeaveGame()
@@ -129,13 +134,13 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         self._sock.close()
         pass
     def OnList(self, data):
-            if len(data[1]) < 2:
+        if len(data[1]) < 2:
+            self.OnListChannels(data)
+        else:
+            if data[1][1] == "0":
                 self.OnListChannels(data)
             else:
-                if data[1][1] == "0":
-                    self.OnListChannels(data)
-                else:
-                    self.OnListGames(data)
+                self.OnListGames(data)
     def OnPrivMsg(self, data):
         #To channel:
         #PRIVMSG #Lob_41_1 :this is text 
