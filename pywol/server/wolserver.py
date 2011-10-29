@@ -1,5 +1,5 @@
-import ip
-import wol_logging
+from .. import ip
+from .. import wol_logging
 
 import user
 import channel

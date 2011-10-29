@@ -1,5 +1,5 @@
-import irc_util
-from irc_util import PrefixMessageFormat
+from .. import irc_util
+from ..irc_util import PrefixMessageFormat
 
 class DirectorConnection(irc_util.Base_IRC_Connection):
     def __init__(self, *args):

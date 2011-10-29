@@ -1,4 +1,4 @@
-import wol_logging
+from .. import wol_logging
 
 
 class Channel:
