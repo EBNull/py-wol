@@ -88,25 +88,26 @@ class User_Manager:
         
     def CreateUser(self, username, connection):
         """Returns a new User instance"""
-        if self.FindUser(name=username) != None:
-            wol_logging.log_caller(wol_logging.ERROR, "users", "User_Manager::CreateUser called when a user by that name exists!")
-            wol_logging.log_caller(wol_logging.ERROR, "users", "User_Manager::CreateUser - removing old %s"%(username))
-            self.RemoveUser(self.FindUser(name=username))
-            #return None
-        u = User(username, connection, self)
-        self.u.append(u)
+        u = self.FindUser(name=username)
+        if u is None:
+            u = User(username, connection, self)
+            self.u.append(u)
+        else:
+            u.connection = connection
         return u
         #pt = Ping_Thread(user)
         #pt.start()
+        
     def RemoveUser(self, user):
         try:
-            user.LeaveChannel()
-            user.LeaveGame()
-            self.u.remove(user)
+            user.Disconnect()
+            user.Disconnect()
         except:
             wol_logging.log_caller(wol_logging.ERROR, "users", "User_Manager::RemoveUser called with invalid user argument")
+            
     def GetUsers(self):
         return self.u
+        
     def FindUser(self, name=None, id=None):
         """Specify name or id, but not both. Returns a user instance"""
         if (name == None) and (id==None):

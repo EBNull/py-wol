@@ -36,3 +36,9 @@ class WOLServer:
             self.channels.CreateChannel(name)
         self.games = channel.Game_Manager()
         self.adminusername = "PyWOL_0.3"
+        
+    def shutdown(self):
+        for u in self.users.u:
+            if u.connection:
+                u.connection.Disconnect()
+        self.users.save()

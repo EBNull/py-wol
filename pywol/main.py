@@ -32,15 +32,14 @@ def console_ui(serv, accept_thread):
                 print "\t%s"%(repr(u))
         if k == 'b':
             for u in serv.users.u:
-                u.connection.dumpbuf();
+                u.connection.dumpbuf()
         if k in 'sq\x03':
+            accept_thread.halt()
+            serv.shutdown()
             print "System Halted. Press enter to Finish."
-            for u in serv.users.u:
-                u.connection.Disconnect();
-                accept_thread.halt();
             while halt == False:
                 k = msvcrt.getch()
-                if (k == chr(13)):
+                if k in 'q\x0D\x03':
                     halt = True
 
 def main(argv):
@@ -53,6 +52,9 @@ def main(argv):
     accept_thread.start()
 
     console_ui(serv, accept_thread)
+    
+    serv.shutdown()
+    
     return 0
     
 if __name__ == "__main__":

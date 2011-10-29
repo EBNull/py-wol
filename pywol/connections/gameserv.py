@@ -126,13 +126,12 @@ class GameServConnection(irc_util.Base_IRC_Connection):
     def OnQuit(self, data):
         self.user.LeaveChannel()
         self.user.LeaveGame()
-        self.server.users.RemoveUser(self.user)
-        self.user.connection = None
-        self.user = None
         self.senddata(irc_util.PrefixMessageFormat(self.server.hostname, "607", ("Username", "goodbye")))
+        self.user.Disconnect()
+        self.user = None
         self.halt()
         self._sock.close()
-        pass
+
     def OnList(self, data):
         if len(data[1]) < 2:
             self.OnListChannels(data)
