@@ -2,6 +2,7 @@ from threading import Thread
 import socket
 import wol_logging
 import select
+import colorama
 
 def PrefixMessageFormat(prefix, command, params):
     """Formats an outgoing message with the specified prefix, command, and paramaters.
@@ -100,7 +101,10 @@ class Base_IRC_Connection(Thread):
     Override get_function_matrix() or OnRecvStr(ircline) to expand functionality.
     """
     def debug(self, level, dtype, strn):
-        wol_logging.log_caller(level, dtype, "[" + str(self.conid) + "] " + strn)
+        cid = self.conid
+        if getattr(self, 'user', None):
+            cid = "%s - %s"%(cid, self.user.name)
+        wol_logging.log_caller(level, dtype, " [%s] "%(cid) + strn)
     def __repr__(self):
         return "%s: remote thread for %s"%(self.__class__, self.rhost)
     def __init__(self, sockname, sock, remotehost, remoteport):
@@ -124,7 +128,7 @@ class Base_IRC_Connection(Thread):
             self._sock.sendall(str)
             if str[-2:] != "\r\n":
                 print "!!! Error no newline: %s"%(str)
-            self.debug(wol_logging.DEBUG, "raw.out", str.strip())
+            self.debug(wol_logging.DEBUG, "raw.out", colorama.Fore.YELLOW + str.strip())
             self._sock.setblocking(0)
         except Exception, e:
             if (e[0] == 10054):

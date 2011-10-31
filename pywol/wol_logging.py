@@ -1,5 +1,7 @@
+from colorama import init, Fore, Back, Style
 import logging
 from logging import INFO, DEBUG, WARNING, ERROR, CRITICAL
+import sys
 #Levels
 #CRITICAL 50
 #ERROR	  40
@@ -8,6 +10,8 @@ from logging import INFO, DEBUG, WARNING, ERROR, CRITICAL
 #DEBUG	  10
 
 def SetupLogging(console_level, file_level=1):
+    init()
+    
     logging.basicConfig(level=file_level,
                     format='%(asctime)s %(name)-14s: %(levelname)-8s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
@@ -44,8 +48,23 @@ def log(severity, cat, data, backs=2):
         the_log = logging.getLogger('pywol')
     else:
         the_log = logging.getLogger('pywol.'+cat)
-    data = linehere(backs) + data
+    #data = linehere(backs) + data
+    c = Fore.WHITE
+    if severity >= 50:
+        c = Fore.RED
+    elif severity >= 40:
+        c = Fore.RED
+    elif severity >= 30:
+        c = Fore.YELLOW
+    elif severity >= 20:
+        c = Fore.WHITE
+    else:
+        c = Fore.CYAN
+    #HACK: the log is going to stdout
+    sys.stdout.flush()
+    sys.stdout.write(c)
     the_log.log(severity, data)
+    sys.stdout.write(Fore.WHITE)
     
 def log_caller(*args, **kargs):
     kargs['backs'] = 4
