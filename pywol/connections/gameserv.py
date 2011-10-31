@@ -325,14 +325,18 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         params = data[1][1:]
         c = len(params)
         if c == 2:
+            wol_logging.log(wol_logging.INFO, "games", "Request by %s to %s game %s"%(self.user.name, "enter", params[0]))
             self.OnEnterExistingGame(params)
+            return
         if (c >= 8): #or (c==9):
+            wol_logging.log(wol_logging.INFO, "games", "Request by %s to %s game %s"%(self.user.name, "create", params[0]))
             #8 = game with no password
             #9 = game with a password
             #>9 = game with a password with spaces
             self.OnCreateNewGame(params)
         else:
-            self.TellClient(repr(params))
+            wol_logging.log(wol_logging.ERROR, "games", "Request by %s to do something unknown with game %s"%(self.user.name, params[0]))
+            self.TellClient("Enter game error?" + repr(params))
     def OnCreateNewGame(self, params):
 	#>       JOINGAME #user's_game unk1 numberOfPlayers gameType unk4 unk5 gameIsTournament unk7 password
 	#< user!WWOL@hostname JOINGAME unk1 numberOfPlayers gameType unk4 clanID longIP gameIsTournament :#game_channel_name
