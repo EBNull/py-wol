@@ -2,6 +2,7 @@ from .. import wol_logging
 from .. import irc_util
 from ..irc_util import PrefixMessageFormat
 from .. import ip
+import time
 
 class GameServConnection(irc_util.Base_IRC_Connection):
     #YR Initial connection:
@@ -459,12 +460,13 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         g.AddUser(self.user)
         g.SendNameListToAll()
     def OnStartGame(self, data):
-        self.TellClient(repr(data))
+        #self.TellClient(repr(data))
         #gamehost!WWOL@hostname STARTG u :user1 xxx.xxx.xxx.xxx user2 xxx.xxx.xxx.xxx :gameNumber cTime
         wol_logging.log(wol_logging.DEBUG, "games", "OnStartGame: %s"%(repr(data)))
         c = data[1][1] #total guess
         #interestingly data[1][2] is a comma delimited username list
         g = self.server.games.FindGame(c)
+        gametime = int(time.time())
         if g == None:
             wol_logging.log(wol_logging.ERROR, "games", "Requested startgame %s but channel not found"%(c))
         else:
@@ -476,4 +478,4 @@ class GameServConnection(irc_util.Base_IRC_Connection):
                 userlist.append("%s %s"%(u.GetName(), str(theip)))
             userlist = ' '.join(userlist)
             for u in users:
-                u.connection.senddata("%s!u@h STARTG u :%s :1337 0\r\n"%(g.GetHost().GetName(), userlist))
+                u.connection.senddata("%s!u@h STARTG u :%s :1337 %s\r\n"%(g.GetHost().GetName(), userlist, gametime))
