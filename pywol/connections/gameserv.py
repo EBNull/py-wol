@@ -182,7 +182,7 @@ class GameServConnection(irc_util.Base_IRC_Connection):
                 if params[0] == "KILL":
                     un = params[1]
                     u = self.server.users.FindUser(un)
-                    if u != None:
+                    if u and u.connection:
                         u.connection.senddata(": 398 u 0:#byebye,0\r\n")
                     else:
                         self.TellClient("%s not found."%(un))
