@@ -431,20 +431,13 @@ class GameServConnection(irc_util.Base_IRC_Connection):
     def OnGameOpt(self, data):
         #GAMEOPT CBWhiz :R1,2,-2,-2,200a8c0,1,552
         un = data[1][1]
-        d = data[1][2]
-        if un[0] == "#":
-            #wol_logging.log(wol_logging.DEBUG, "games", "GAMEOPT for %s supposedly set to %s"%(un, d))
-            g = self.user.GetGame()
-            if g != None:
-                for u in g.GetUsers():
-                    if u != self.user: #Confirmed, host does not get channel GameOpts
-                        u.connection.senddata(":"+self.user.GetName()+"!u@h GAMEOPT "+un+" :"+d+"\r\n")
-        else:
-            g = self.user.GetGame()
-            if g != None:
-                for u in g.GetUsers():
-                    u.connection.senddata(":"+self.user.GetName()+"!u@h GAMEOPT "+un+" :"+d+"\r\n")
-            #:CBWhiz!u@h GAMEOPT CBWhiz :R1,2,-2,-2,200a8c0,1,552
+        d = ' '.join(data[1][2:])
+        g = self.user.GetGame()
+        for u in g.GetUsers():
+            #It is possible that the sender should not receive this back.
+            #Also, its not clear who should have appear to have send this (first param)
+            u.connection.senddata(":%s GAMEOPT %s :%s\r\n"%(self.user.GetName(), un, d))
+
     def OnEnterExistingGame(self, params):
         gdata = {}
         gdata["name"] = params[0]
