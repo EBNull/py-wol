@@ -6,6 +6,7 @@ class Channel:
         return "Channel [PyID: %i] %s: %i users (%s)"%(id(self), self.name, len(self.users), ', '.join([u.GetName() for u in self.users]))
     def __init__(self, name, chan_mgr):
         self.name = name
+        self.topic = ""
         self.users = []
         self.chan_mgr = chan_mgr
     def GetName(self):
@@ -68,8 +69,6 @@ class Game(Channel):
         global maxgid
         self.gid = maxgid
         maxgid += 1
-        self.gameopt = ""
-        self.topic = ""
         gdata = { }
         gdata["name"] = name
         gdata["2"] = "0"
@@ -93,14 +92,6 @@ class Game(Channel):
         Channel.RemoveUser(self, user)
         if len(self.users) == 0:
             self.chan_mgr.RemoveGame(self)
-    def SetGameOpt(self, gameopt):
-        self.gameopt = gameopt
-    def GetGameOpt(self, gameopt):
-        return self.gameopt
-    def SetTopic(self, topic):
-        self.topic = topic
-    def GetTopic(self):
-        return self.topic
     def SendNameListToAll(self):
         for u in self.users:
             u.connection.SendGameNamesList()
