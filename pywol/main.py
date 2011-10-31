@@ -33,6 +33,11 @@ def console_ui(serv, accept_thread):
         if k == 'b':
             for u in serv.users.u:
                 u.connection.dumpbuf()
+        if k == '~':
+            import code
+            z = globals()
+            z.update(locals())
+            code.interact("In console. serv=WOLServer", local=z)
         if k in 'sq\x03':
             accept_thread.halt()
             serv.shutdown()
@@ -51,6 +56,9 @@ def main(argv):
     accept_thread = ListenThread(serv)
     accept_thread.start()
 
+    import sys
+    import colorama
+    sys.ps1 = colorama.Fore.RESET + colorama.Back.RESET + ">>> "
     console_ui(serv, accept_thread)
     
     serv.shutdown()
