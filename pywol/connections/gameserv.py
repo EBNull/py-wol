@@ -407,15 +407,22 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         if g != None:
             self.senddata(": 332 u " + g.GetName() + " :"+g.GetTopic()+"\r\n")
             omghost = 0
+            userinfo = {}
             for u in g.GetUsers():
                 n = u.GetName()
                 if omghost == 0:
                     n = "@" + n
                 omghost += 1
                 dip = ip.ip_to_long_external(u.connection.rhost)
-                self.senddata(": 353 u = " + g.GetName() + " :%s,0,%u\r\n"%(n,dip))
+                #"( "=" / "*" / "@" ) <channel> :[ "@" / "+" ] <nick> *( " " [ "@" / "+" ] <nick> )"
+                userinfo[u.GetName()] = "%s,0,%s"%(n,dip)
                 #: 353 u = #CBWhiz's_game :@CBWhiz,0,1165753248
-            self.senddata(": 366 u " + g.GetName() + " :\r\n")
+            me = self.user.GetName()
+            chan = g.GetName()
+            for un, ui in userinfo.iteritems():
+                self.senddata(": 353 %s = %s :%s\r\n"%(un, chan, ui))
+            self.senddata(": 366 %s %s :End of /NAMES list\r\n"%(me, chan))
+            
     def OnTopic(self, data):
         #TOPIC #CBWhiz's_game :g17D25,2097731398,0,0,0,
         #:irc.westwood.com 332 CBWhiz CBWhiz's game :g15N39,1878366581,0,0,0,MP13S4.MAP
