@@ -291,10 +291,15 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         #PART #Lob_41_1
         #:CBWhiz!u@h PART #Lob_41_1
         room = data[1][1]
+        c = self.user.GetChannel()
         self.user.LeaveChannel()
         self.user.LeaveGame()
         self.senddata(":"+self.user.name + "!u@h PART " + room + "\r\n")
-        #TODO: notify other users in the channel about the join
+        if c:
+            for u in c.GetUsers():
+                u.connection.senddata(":"+self.user.name + "!u@h PART " + room + "\r\n")
+                
+            
     def OnListGames(self, data):
         gametype = int(data[1][1])
         #XWIS's reply:
