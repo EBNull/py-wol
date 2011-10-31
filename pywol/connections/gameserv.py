@@ -311,7 +311,7 @@ class GameServConnection(irc_util.Base_IRC_Connection):
                                                                 len(g.GetUsers()),
                                                                 g.gdata["clientgame"],
                                                                 dip,
-                                                                g.GetTopic()))
+                                                                g.topic))
         self.senddata(": 323 u:\r\n")
         #wol_logging.log(wol_logging.INFO, "list.games", "Request game listing, but not yet implemented. Gametype: %i"%(gametype))
         pass
@@ -410,12 +410,12 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         #TOPIC #CBWhiz's_game :g17D25,2097731398,0,0,0,
         #:irc.westwood.com 332 CBWhiz CBWhiz's game :g15N39,1878366581,0,0,0,MP13S4.MAP
         c = data[1][1]
-        t = data[1][2]
+        t = ''.join(data[1][2:])
         g = self.server.games.FindGame(c)
         if g == None:
             wol_logging.log(wol_logging.ERROR, "games", "Requested set %s to topic %s but that game doesnt exist"%(c, t))
         else:
-            g.SetTopic(t)
+            g.topic = t
             users = g.GetUsers()
             for u in users:
                 if u != self.user: #Confirmed, sender/hoster does not get this back
