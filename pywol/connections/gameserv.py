@@ -404,8 +404,7 @@ class GameServConnection(irc_util.Base_IRC_Connection):
         g.SendNameListToAll()
     def SendGameNamesList(self):
         g = self.user.GetGame()
-        if g != None:
-            self.senddata(": 332 u " + g.GetName() + " :"+g.GetTopic()+"\r\n")
+        if g:
             omghost = 0
             userinfo = {}
             for u in g.GetUsers():
@@ -425,7 +424,7 @@ class GameServConnection(irc_util.Base_IRC_Connection):
             
     def OnTopic(self, data):
         #TOPIC #CBWhiz's_game :g17D25,2097731398,0,0,0,
-        #:irc.westwood.com 332 CBWhiz CBWhiz's game :g15N39,1878366581,0,0,0,MP13S4.MAP
+        #:irc.westwood.com 332 CBWhiz CBWhiz's_game :g15N39,1878366581,0,0,0,MP13S4.MAP
         c = data[1][1]
         t = ''.join(data[1][2:])
         g = self.server.games.FindGame(c)
@@ -435,8 +434,7 @@ class GameServConnection(irc_util.Base_IRC_Connection):
             g.topic = t
             users = g.GetUsers()
             for u in users:
-                if u != self.user: #Confirmed, sender/hoster does not get this back
-                    u.connection.senddata(": 332 %s %s :%s\r\n"%(self.user.GetName(), c, t))
+                u.connection.senddata(": 332 %s %s :%s\r\n"%(self.user.GetName(), c, t))
 
 
     def OnGameOpt(self, data):
@@ -467,6 +465,7 @@ class GameServConnection(irc_util.Base_IRC_Connection):
                                                                                             gdata["tournament"],
                                                                                             gdata["name"]))
         g.AddUser(self.user)
+        self.senddata(": 332 %s %s :%s\r\n"%(self.user.GetName(), gdata["name"], g.topic))
         g.SendNameListToAll()
     def OnStartGame(self, data):
         #self.TellClient(repr(data))
